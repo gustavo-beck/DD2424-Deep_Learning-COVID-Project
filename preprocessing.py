@@ -45,7 +45,7 @@ def contrastLAHE(images):
     img_clahe = [clahe.apply(image) for image in images]
     return img_clahe
 
-def preprocess(images, gray_scale = False, denoise = False, clahe = False):
+def preprocess(images, gray_scale = False, denoise = False, clahe = False, covid = False, xray = False):
     img_o = images[32]
     # Transform to gray scale
     if gray_scale:
