@@ -41,7 +41,7 @@ def denoiser(images):
     return blurred_images
 
 def contrastLAHE(images):
-    clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(16, 16))
+    clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(4, 4))
     img_clahe = [clahe.apply(image) for image in images]
     return img_clahe
 

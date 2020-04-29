@@ -40,5 +40,3 @@ except IOError :
 print('Cleaned Data')
 plt.imshow(x_ray[32],cmap='gray')
 plt.show()
-
-print('Closing HDf5 file')
