@@ -22,7 +22,7 @@ except IOError :
     df_covid = pd.read_csv('covid-chestxray-dataset-master/metadata.csv')
     matching_df = df_covid[df_covid['filename'].isin(image_list)]
     xray_list = matching_df[matching_df['modality'] == 'X-ray']['filename'].tolist()
-    # Assign labels
+    # Assign labels of covid
     xray_labels = df_covid[df_covid['filename'].isin(xray_list)]['finding']
     images_PIL = [Image.open(os.path.join(image_covid_folder, image_name)) for image_name in xray_list]
     covid = pp.preprocess(images_PIL, gray_scale = True, denoise = True, clahe = True, covid = True)
