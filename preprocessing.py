@@ -22,8 +22,8 @@ def display(a, b, c, d, title1 = "Original", title2 = "Gray", title3 = "Denoised
 def reshapeImages(images):
 
     # setting dim of the resize
-    height = 512
-    width = 512
+    height = 224
+    width = 224
     dim = (width, height)
 
     # reshaping
@@ -55,7 +55,7 @@ def preprocess(images, gray_scale = False, denoise = False, clahe = False, covid
 
     # Reshape images
     images_reshaped = reshapeImages(images_gray)
-    print("Images reshaped to 512x512")
+    print("Images reshaped to 224x224")
 
     # Add blur
     if denoise:
@@ -69,7 +69,7 @@ def preprocess(images, gray_scale = False, denoise = False, clahe = False, covid
         img_c = images_clahe[32]
         print("Images applied Contrast Limited Adaptive Histogram Equalization")
 
-    display(img_o, img_g, img_d, img_c)
+    # display(img_o, img_g, img_d, img_c)
     return images_clahe
 
 
