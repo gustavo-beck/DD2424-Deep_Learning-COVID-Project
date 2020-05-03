@@ -83,23 +83,22 @@ class CustomDatasetFromImages(torch.utils.data.Dataset):
         if self.transforms is not None:
             img_array = self.transforms(img_array)
         image_label = self.current_pickle.labels[pos]
-        single_img_name = 2
-        return (single_img_name, img_array, self.labels_dict[image_label])
+        return (img_array, self.labels_dict[image_label])
     def __len__(self):
         return self.data_len
 
 # shuffling the samples
-train_set = CustomDatasetFromImages(directories['train'], class_dict, transforms=our_transforms) # train[0], train[1], .. , train[15]
+train_set = CustomDatasetFromImages(directories['train'][0:1], class_dict, transforms=our_transforms) # train[0], train[1], .. , train[15]
 val_set = CustomDatasetFromImages(directories['val'], class_dict, transforms=our_transforms)
-test_set = CustomDatasetFromImages(directories['test'], class_dict, transforms=our_transforms)
+test_set = CustomDatasetFromImages(directories['test'][0:1], class_dict, transforms=our_transforms)
 # The loader is used to slpit the input and validation to batches, it returns arrays with the input in batches
-trainloader = torch.utils.data.DataLoader(train_set, batch_size=250, num_workers=2,shuffle=False) 
-testloader = torch.utils.data.DataLoader(test_set, batch_size=250, num_workers=2, shuffle=False)
+trainloader = torch.utils.data.DataLoader(train_set, batch_size=200, num_workers=2,shuffle=False) 
+testloader = torch.utils.data.DataLoader(test_set, batch_size=200, num_workers=2, shuffle=False)
 
 print('Calculating frequencies..')
 freq = np.zeros(len(class_dict.keys()))
 for sample in train_set:
-    freq[sample[2]]+=1
+    freq[sample[1]]+=1
 plt.bar(np.arange(0,15,1), freq)
 plt.xticks(np.arange(0,15,1), class_dict.keys())
 plt.show()
@@ -136,7 +135,7 @@ model.fc = torch.nn.Linear(512, 15) # fc stands for fully connected layer 512 in
 model = torch.nn.Sequential(model, torch.nn.Softmax(1)) # We do a sequential pipeline
 #test_model = torch.nn.Sequential(torch.nn.Conv2d(1, 20, 5), )
 cov_model = ConvNet()
-model = cov_model
+#model = cov_model
 criterion = torch.nn.CrossEntropyLoss(weight=class_weights)
 #optimizer = torch.optim.Adam(model.parameters(), lr=0.001, weight_decay=0.0005)
 optimizer = torch.optim.Adam(model.parameters(), lr=0.001, weight_decay=0.0005)
@@ -150,7 +149,7 @@ for epoch in range(epochs):
     print(epoch)
     training_acc = 0
     training_samples = 0
-    for link, batch_images, batch_labels in tqdm(trainloader):
+    for batch_images, batch_labels in tqdm(trainloader):
         optimizer.zero_grad() # we set the gradients to zero
         outputs = model(batch_images) # feed forward
         _, pred = torch.max(outputs.data, 1) # max returns the maximum value and the argmax, 1 is the axis
@@ -162,7 +161,7 @@ for epoch in range(epochs):
     print('Training acc:', training_acc/training_samples)
     correct = 0
     total = 0
-    for link, batch_images, batch_labels in testloader:
+    for batch_images, batch_labels in testloader:
         outputs = model(batch_images)
         _, pred = torch.max(outputs.data, 1)
         correct += (pred == batch_labels).sum().item()
