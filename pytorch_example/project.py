@@ -93,9 +93,18 @@ train_set = CustomDatasetFromImages(directories['train'], class_dict, transforms
 val_set = CustomDatasetFromImages(directories['val'], class_dict, transforms=our_transforms)
 test_set = CustomDatasetFromImages(directories['test'], class_dict, transforms=our_transforms)
 # The loader is used to slpit the input and validation to batches, it returns arrays with the input in batches
-trainloader = torch.utils.data.DataLoader(train_set, batch_size=64, num_workers=2,shuffle=False) 
-testloader = torch.utils.data.DataLoader(test_set, batch_size=64, num_workers=2, shuffle=False)
+trainloader = torch.utils.data.DataLoader(train_set, batch_size=250, num_workers=2,shuffle=False) 
+testloader = torch.utils.data.DataLoader(test_set, batch_size=250, num_workers=2, shuffle=False)
 
+print('Calculating frequencies..')
+freq = np.zeros(len(class_dict.keys()))
+for sample in train_set:
+    freq[sample[2]]+=1
+plt.bar(np.arange(0,15,1), freq)
+plt.xticks(np.arange(0,15,1), class_dict.keys())
+plt.show()
+weights = len(train_set)/freq/len(class_dict.keys())
+class_weights = torch.FloatTensor(weights)
 
 class ConvNet(nn.Module):
     def __init__(self):
@@ -128,7 +137,7 @@ model = torch.nn.Sequential(model, torch.nn.Softmax(1)) # We do a sequential pip
 #test_model = torch.nn.Sequential(torch.nn.Conv2d(1, 20, 5), )
 cov_model = ConvNet()
 model = cov_model
-criterion = torch.nn.CrossEntropyLoss()
+criterion = torch.nn.CrossEntropyLoss(weight=class_weights)
 #optimizer = torch.optim.Adam(model.parameters(), lr=0.001, weight_decay=0.0005)
 optimizer = torch.optim.Adam(model.parameters(), lr=0.001, weight_decay=0.0005)
 # scheduler is used to adjust the learning rate,
