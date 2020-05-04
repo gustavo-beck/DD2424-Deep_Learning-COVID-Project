@@ -5,16 +5,14 @@ import matplotlib.pyplot as plt
 import numpy as np
 import time
 import random
-from torch import nn
 import pickle
 from tqdm import tqdm
 import tensorflow as tf
 import sys, os,cv2
 from sklearn.utils import shuffle
-from sklearn.preprocessing import OneHotEncoder
-from skimage.transform import resize
-from skimage.color import rgba2rgb
-import tensorf
+import statistics
+from statistics import mode
+import tensorflow.compat.v1 as tf
 tf.disable_v2_behavior()
 
 class myData:
@@ -23,10 +21,9 @@ class myData:
         self.labels=labels
 
 
-print('libraries alright')
 dictionary = {'Atelectasis': 0, 'Cardiomegaly': 1, 'Consolidation': 2, 'Edema': 3, 'Effusion': 4, 'Emphysema': 5, 'Fibrosis': 6, 'Hernia': 7, 'Infiltration': 8, 'Mass': 9, 'COVID-19': 10, 'Nodule': 11, 'Pleural_Thickening': 12, 'Pneumonia': 13, 'Pneumothorax': 14}
-path_for_soms = "/home/theodor/Git_Projects/DD2424-Deep_Learning-COVID-Project/pytorch_example/dataset/soms/"
-soms_dataset = pickle.load(open(path_for_soms + 'balanched_data.pickle', 'rb'))
+path_for_soms = r'C:/Users/teodo/OneDrive/Desktop/KTH/4th_Period/Deep_Learning/Project/DD2424-Deep_Learning-COVID-Project/pytorch_example/balanced_data.pickle'
+soms_dataset = pickle.load(open(path_for_soms, 'rb'))
 indexes = np.random.permutation(soms_dataset.labels.shape[0])
 soms_dataset.data = soms_dataset.data[indexes]
 soms_dataset.labels = soms_dataset.labels[indexes]
@@ -41,7 +38,7 @@ class SOM_Layer():
         self.n = n
         self.dim = dim
         self.gaussian_std = gaussian_std
-        self.map = tf.Variable(tf.random.normal(shape=[m*n,dim],stddev=0.05))
+        self.map = tf.Variable(tf.random.normal(shape=[m*n,dim],stddev=0.05)) # [900 x 1024]
         self.location_vects = tf.constant(np.array(list(self._neuron_locations(m, n))))
         self.alpha = learning_rate_som
         self.sigma = max(m,n)*1.1
@@ -55,14 +52,16 @@ class SOM_Layer():
             for j in range(n):
                 yield np.array([i, j])
 
-    def getmap(self): return self.map
-    def getlocation(self): return self.bmu_locs
+    def getmap(self):
+        return self.map
+    def getlocation(self):
+        return self.bmu_locs
 
     def feedforward(self,input):
     
         self.input = input
         self.squared_distance = tf.reduce_sum(tf.pow(tf.subtract(tf.expand_dims(self.map, axis=0),tf.expand_dims(self.input, axis=1)), 2), 2)
-        self.bmu_indices = tf.argmin(self.squared_distance, axis=1)
+        self.bmu_indices = tf.argmin(self.squared_distance, axis=1) # winner
         self.bmu_locs = tf.reshape(tf.gather(self.location_vects, self.bmu_indices), [-1, 2])
 
     def backprop(self,iter,num_epoch):
@@ -123,12 +122,13 @@ def val2onehot(val_array, classes):
 labels_one_hot = val2onehot(soms_dataset.labels, 15)
 resized_images = reshapeImages(soms_dataset.data)
 train_batch = resized_images.reshape(resized_images.shape[0], -1)
-map_width_height  = 30
+map_width  = 10
+map_height  = 10
 map_dim = 32 * 32
-num_epoch = 20
+num_epoch = 100
 batch_size = 100
 train_label = soms_dataset.labels
-SOM_layer = SOM_Layer(map_width_height, map_width_height, map_dim, learning_rate_som=0.8, radius_factor=0.4, gaussian_std = 0.03)
+SOM_layer = SOM_Layer(map_width, map_height, map_dim, learning_rate_som=0.8, radius_factor=0.4, gaussian_std = 0.03)
 
 # create the graph
 x = tf.placeholder(shape=[None,map_dim],dtype=tf.float32)
@@ -152,7 +152,7 @@ with tf.Session() as sess:
         print('\n-----------------------')
 
     # after training is done get the closest vector
-    n_samples = 10
+    n_samples = 50
     counter = np.zeros(15)
     samples = np.empty((0, train_batch.shape[1]))
     batch_labels = np.empty(0)
@@ -169,13 +169,26 @@ with tf.Session() as sess:
     index = batch_labels
     index = list(map(str, index))
 
+    map_centroid = {}
+    for i, loc in enumerate(locations):
+        if loc.tobytes() not in map_centroid:
+            map_centroid[loc.tobytes()] = [batch_labels[i]]
+        else:
+            map_centroid[loc.tobytes()].append(batch_labels[i])
+    
+    # Check the majority
+    most_freq = {}
+    for key, value in map_centroid.items():
+        most_freq[key] = max(set(value), key=value.count)
+    
     ## Plots: 1) Train 2) Test+Train ###
     plt.figure(1, figsize=(12,6))
     plt.subplot(121)
     plt.scatter(x1,y1)
     # Just adding text
-    for i, m in enumerate(locations):
-        plt.text( m[0], m[1],index[i], ha='center', va='center', 
+    for key, value in most_freq.items():
+        numpy_key = np.frombuffer(key, dtype = locations.dtype)
+        plt.text(numpy_key[0], numpy_key[1], value, ha='center', va='center', 
         bbox=dict(facecolor='white', alpha=0.5, lw=0))
     plt.title('Train X-Ray Images')
     plt.show()
