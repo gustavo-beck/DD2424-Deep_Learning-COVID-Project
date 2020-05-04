@@ -69,30 +69,30 @@ try:
     # plt.title('test data')
     # plt.show()
 
-    x_raydata = x_ray.data
-    x_ray_labels = x_ray.labels
-
-    letter_counts = Counter(x_ray_labels)
-    df = pd.DataFrame.from_dict(letter_counts, orient='index')
-    df.plot(kind='bar')
-    plt.show()
-
-    train,train_l,val,val_l,test,test_l = splitData(x_raydata,x_ray_labels)
-
-    letter_counts = Counter(train_l)
-    df = pd.DataFrame.from_dict(letter_counts, orient='index')
-    df.plot(kind='bar')
-    plt.show()
-
-    letter_counts = Counter(val_l)
-    df = pd.DataFrame.from_dict(letter_counts, orient='index')
-    df.plot(kind='bar')
-    plt.show()
-
-    letter_counts = Counter(test_l)
-    df = pd.DataFrame.from_dict(letter_counts, orient='index')
-    df.plot(kind='bar')
-    plt.show()
+    # x_raydata = x_ray.data
+    # x_ray_labels = x_ray.labels
+    #
+    # letter_counts = Counter(x_ray_labels)
+    # df = pd.DataFrame.from_dict(letter_counts, orient='index')
+    # df.plot(kind='bar')
+    # plt.show()
+    #
+    # train,train_l,val,val_l,test,test_l = splitData(x_raydata,x_ray_labels)
+    #
+    # letter_counts = Counter(train_l)
+    # df = pd.DataFrame.from_dict(letter_counts, orient='index')
+    # df.plot(kind='bar')
+    # plt.show()
+    #
+    # letter_counts = Counter(val_l)
+    # df = pd.DataFrame.from_dict(letter_counts, orient='index')
+    # df.plot(kind='bar')
+    # plt.show()
+    #
+    # letter_counts = Counter(test_l)
+    # df = pd.DataFrame.from_dict(letter_counts, orient='index')
+    # df.plot(kind='bar')
+    # plt.show()
 
     print("Found data")
 
@@ -133,5 +133,55 @@ except IOError :
 print('Cleaned Data')
 #plt.imshow(x_ray[32],cmap='gray')
 #plt.show()
+
+
+def read_txt(type='train'):
+    if type=='train':
+        np.random.seed(42)
+        file = open('train_val_list.txt','r')
+        data = file.read()
+        list_of_names = data.split("\n")
+        size = len(list_of_names)
+        train_size = int(0.8*size)
+        indeces = np.random.choice(np.arange(size),train_size,replace=False)
+        indeces_val = list(set(np.arange(size)) - set(indeces))
+        train = [list_of_names[index] for index in list(indeces)]
+        val = [list_of_names[index] for index in list(indeces_val)]
+        return train,val
+
+
+    else:
+        file = open('test_list.txt', 'r')
+        data = file.read()
+        list_of_names = data.split("\n")
+
+        return list_of_names
+
+    
+train,val = read_txt()
+
+test = read_txt('test')
+# def getLabels(list):
+#     df = pd.read_csv('Data_Entry_2017.csv')
+#     label_list = []
+#     counter=0
+#     print(len(list))
+#     for image_name in list:
+#         if counter%100==0:
+#             print(counter)
+#         label_list.append(df[df['Image Index'] == image_name]['Finding Labels'].values[0].split('|')[0])
+#         counter = counter+1
+#     return label_list
+#
+# labels= getLabels(test)
+
+f=open('val.txt','w')
+for ele in val:
+    f.write(ele+'\n')
+
+f.close()
+# print(len(labels))
+# print(labels[0])
+
 
 
