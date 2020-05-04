@@ -17,11 +17,9 @@ class myData:
         self.data=data
         self.labels=labels
 
-
-print('libraries alright')
-path="/home/theodor/Git_Projects/DD2424-Deep_Learning-COVID-Project/pytorch_example/dataset/X-ray_pickles/"
-img_name=[]
-label=[]
+path=r'C:\Users\Adrian\Desktop\DL_PROJECT_GITHUB\CODE\X-ray_pickles'
+img_name = []
+label = []
 labels = ['train', 'val', 'test']
 directories = {}
 for label in labels:
@@ -35,11 +33,15 @@ for root, _, files in os.walk(path):
                 directories[label].append(root+"/"+file)
 
 
+
+
 pickle_file = open(directories['train'][0], 'rb')
 current_pickle = pickle.load(pickle_file)
 diseases = np.unique(current_pickle.labels)
 idx = np.arange(len(diseases))
 class_dict = dict(zip(diseases, idx))
+
+
 
 # we define all the transformations we want to do with the images
 # RandomAffine does a serries of transformations as explained here https://www.mathworks.com/discovery/affine-transformation.html
@@ -50,6 +52,7 @@ our_transforms = torchvision.transforms.ToTensor()
 # not necessary to define it, but it helps organize the input
 # class is a child of torch.utils.data.Dataset
 # getitem enables when we do CustomDatasetFromImages[index]
+
 class CustomDatasetFromImages(torch.utils.data.Dataset):
     def __init__(self, pickle_dir_array, labels_dict, transforms=None):
         self.labels_dict = labels_dict
@@ -66,7 +69,6 @@ class CustomDatasetFromImages(torch.utils.data.Dataset):
         self.samples_per_pickle = len(self.current_pickle.labels)
         self.data_len += self.samples_per_pickle*(len(pickle_dir_array) - 1)
 
-        
     def load_pickle_file(self, file_num, shuffle=False):
         pickle_file = open(self.pickle_dir_array[file_num], 'rb')
         self.current_pickle = pickle.load(pickle_file)
@@ -93,18 +95,19 @@ train_set = CustomDatasetFromImages(directories['train'], class_dict, transforms
 val_set = CustomDatasetFromImages(directories['val'], class_dict, transforms=our_transforms)
 test_set = CustomDatasetFromImages(directories['test'], class_dict, transforms=our_transforms)
 # The loader is used to slpit the input and validation to batches, it returns arrays with the input in batches
-trainloader = torch.utils.data.DataLoader(train_set, batch_size=250, num_workers=2,shuffle=False) 
-testloader = torch.utils.data.DataLoader(test_set, batch_size=250, num_workers=2, shuffle=False)
+trainloader = torch.utils.data.DataLoader(train_set, batch_size=250, num_workers=0, shuffle=False)
+testloader = torch.utils.data.DataLoader(test_set, batch_size=100, num_workers=0, shuffle=False)
 
 print('Calculating frequencies..')
 freq = np.zeros(len(class_dict.keys()))
 for sample in train_set:
     freq[sample[2]]+=1
-plt.bar(np.arange(0,15,1), freq)
-plt.xticks(np.arange(0,15,1), class_dict.keys())
-plt.show()
+# plt.bar(np.arange(0,15,1), freq)
+# plt.xticks(np.arange(0,15,1), class_dict.keys())
+# plt.show()
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 weights = len(train_set)/freq/len(class_dict.keys())
-class_weights = torch.FloatTensor(weights)
+class_weights = torch.FloatTensor(weights).to(device)
 
 class ConvNet(nn.Module):
     def __init__(self):
@@ -128,15 +131,20 @@ class ConvNet(nn.Module):
         layer2_vec = layer2.view(-1, 32*14*14)
         return torch.nn.Softmax(1)(self.fc1(self.drop_out(layer2_vec)))
 
+# class block(nn.Module):
+#     def __init__(self, input_channels, output_channels, identity):
+
 model = torchvision.models.resnet18(pretrained=True)
-model.conv1 = nn.Conv2d(1, 64, kernel_size=7, stride=2, padding=3, bias=False)
+model.conv1 = nn.Conv2d(1, 64, kernel_size=7, stride=2, padding=3, bias=False) # If we do not modify this layer the resnet will expect a three layer network
 # model.connection1 = torch.nn.Linear(512, 220)
 
 model.fc = torch.nn.Linear(512, 15) # fc stands for fully connected layer 512 input 2 the output
 model = torch.nn.Sequential(model, torch.nn.Softmax(1)) # We do a sequential pipeline
+print(device)
+model.to(device)
 #test_model = torch.nn.Sequential(torch.nn.Conv2d(1, 20, 5), )
-cov_model = ConvNet()
-model = cov_model
+# cov_model = ConvNet()
+# model = cov_model
 criterion = torch.nn.CrossEntropyLoss(weight=class_weights)
 #optimizer = torch.optim.Adam(model.parameters(), lr=0.001, weight_decay=0.0005)
 optimizer = torch.optim.Adam(model.parameters(), lr=0.001, weight_decay=0.0005)
@@ -146,23 +154,27 @@ optimizer = torch.optim.Adam(model.parameters(), lr=0.001, weight_decay=0.0005)
 scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.1, patience=10, eps=1e-06)
 # in pytorch training isn't that easy as keras, but we have additional flexibility
 epochs = 10
+
 for epoch in range(epochs):
     print(epoch)
     training_acc = 0
     training_samples = 0
     for link, batch_images, batch_labels in tqdm(trainloader):
+        batch_images, batch_labels = batch_images.to(device), batch_labels.to(device)
         optimizer.zero_grad() # we set the gradients to zero
         outputs = model(batch_images) # feed forward
         _, pred = torch.max(outputs.data, 1) # max returns the maximum value and the argmax, 1 is the axis
         training_acc += (pred == batch_labels).sum().item() # we sum all the the correctly classified samples, item() coverts the 1d tensor to a number
         training_samples  += batch_labels.size(0) # counting the samples
-        loss = criterion(outputs, batch_labels) # claculating loss
+        loss = criterion(outputs, batch_labels.long().to(device)) # claculating loss
         loss.backward() # backpropagate the loss
         optimizer.step() # updating parameters
     print('Training acc:', training_acc/training_samples)
     correct = 0
     total = 0
+    torch.cuda.empty_cache()
     for link, batch_images, batch_labels in testloader:
+        batch_images, batch_labels = batch_images.to(device), batch_labels.to(device)
         outputs = model(batch_images)
         _, pred = torch.max(outputs.data, 1)
         correct += (pred == batch_labels).sum().item()
