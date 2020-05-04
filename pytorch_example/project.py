@@ -9,71 +9,107 @@ import os
 import time
 import random
 from torch import nn
+import pickle
+from tqdm import tqdm
+
+class myData:
+    def __init__(self,data,labels):
+        self.data=data
+        self.labels=labels
+
+
 print('libraries alright')
-path="/home/theodor/Desktop/dataset/"
+path="/home/theodor/Git_Projects/DD2424-Deep_Learning-COVID-Project/pytorch_example/dataset/X-ray_pickles/"
 img_name=[]
 label=[]
-for root, directories, files in os.walk(path):
+labels = ['train', 'val', 'test']
+directories = {}
+for label in labels:
+    directories[label] = []
+for root, _, files in os.walk(path):
+    files.sort()
+    files = sorted(files, key=lambda fl: len(fl))
     for file in files:
-        img_name.append(root+"/"+file)
-        label.append(root.split("/")[-1])
+        for label in labels:
+            if label in file:
+                directories[label].append(root+"/"+file)
+
+
+pickle_file = open(directories['train'][0], 'rb')
+current_pickle = pickle.load(pickle_file)
+diseases = np.unique(current_pickle.labels)
+idx = np.arange(len(diseases))
+class_dict = dict(zip(diseases, idx))
 
 # we define all the transformations we want to do with the images
 # RandomAffine does a serries of transformations as explained here https://www.mathworks.com/discovery/affine-transformation.html
 # with those transformations, the network will be able to handle distorted input
 # torchvision.transforms.ToTensor() converts image to tensor input
 images_size = 224 # 224
-train_Aug = torchvision.transforms.Compose([torchvision.transforms.Resize((images_size, images_size)), torchvision.transforms.RandomRotation((-20, 20)), torchvision.transforms.RandomAffine(0, translate=None, scale=[0.7, 1.3], shear=None, resample=False, fillcolor=0), torchvision.transforms.ToTensor()])
-test_Aug = torchvision.transforms.Compose([torchvision.transforms.Resize((images_size, images_size)), torchvision.transforms.ToTensor()]) # validation shouldn't be distorted, only resized
-
-# not neccessary to define it, but it helps organize the input
+our_transforms = torchvision.transforms.ToTensor()
+# not necessary to define it, but it helps organize the input
 # class is a child of torch.utils.data.Dataset
 # getitem enables when we do CustomDatasetFromImages[index]
 class CustomDatasetFromImages(torch.utils.data.Dataset):
-    def __init__(self, img_name, label, transforms=None): 
-        self.image_arr = np.asarray(img_name)
-        self.label_arr = np.asarray(label)
-        self.data_len = len(img_name)
+    def __init__(self, pickle_dir_array, labels_dict, transforms=None):
+        self.labels_dict = labels_dict
         self.transforms = transforms
+        self.pickle_dir_array = pickle_dir_array
+        # initializing variables
+        self.current_pickle = None
+        self.current_pickle_id = -1
+        # calculating length
+        self.load_pickle_file(-1)
+        self.data_len = len(self.current_pickle.labels)
+        # loading the first file
+        self.load_pickle_file(0)
+        self.samples_per_pickle = len(self.current_pickle.labels)
+        self.data_len += self.samples_per_pickle*(len(pickle_dir_array) - 1)
+
+        
+    def load_pickle_file(self, file_num, shuffle=False):
+        pickle_file = open(self.pickle_dir_array[file_num], 'rb')
+        self.current_pickle = pickle.load(pickle_file)
+        self.current_pickle_id = file_num
+
+    def index_to_pic_pos(self, index):
+        return index // self.samples_per_pickle, index % self.samples_per_pickle
+
     def __getitem__(self, index):
-        single_img_name = self.image_arr[index]
-        img_array = Image.open(single_img_name).convert('RGB')
+        pic, pos = self.index_to_pic_pos(index)
+        if pic != self.current_pickle_id:
+            self.load_pickle_file(pic)
+        img_array = self.current_pickle.data[pos]
         if self.transforms is not None:
             img_array = self.transforms(img_array)
-            image_label = self.label_arr[index]
-        return (single_img_name, img_array, image_label)
+        image_label = self.current_pickle.labels[pos]
+        return (img_array, self.labels_dict[image_label])
     def __len__(self):
         return self.data_len
 
 # shuffling the samples
-index = np.random.permutation(len(img_name))
-img_name = np.array(img_name)[index]
-label = np.array(label)[index]
-# labels to 0 and 1, pytorch doen't work with onehot but with class numbers
-new_labels = np.zeros((len(label)), dtype=int) # has to be int and 1D-vector or else we will have problems
-new_labels[label == 'covid'] = 1
-label = new_labels
-# splitting to train-test
-train_nums = 25
-train_set = img_name[:train_nums]
-train_labels= label[:train_nums]
-test_set = img_name[train_nums:]
-test_labels= label[train_nums:]
-train_set = CustomDatasetFromImages(train_set, train_labels, transforms=train_Aug)
-test_set = CustomDatasetFromImages(test_set, test_labels, transforms=test_Aug)
+train_set = CustomDatasetFromImages(directories['train'][0:1], class_dict, transforms=our_transforms) # train[0], train[1], .. , train[15]
+val_set = CustomDatasetFromImages(directories['val'], class_dict, transforms=our_transforms)
+test_set = CustomDatasetFromImages(directories['test'][0:1], class_dict, transforms=our_transforms)
 # The loader is used to slpit the input and validation to batches, it returns arrays with the input in batches
-trainloader = torch.utils.data.DataLoader(train_set, batch_size=64, num_workers=2,shuffle=True) 
-testloader = torch.utils.data.DataLoader(test_set, batch_size=64, num_workers=2, shuffle=False)
-print(train_set[0][0], train_set[0][1].sum(), train_set[0][2])
-print(train_set[0][0], train_set[0][1].sum(), train_set[0][2])
+trainloader = torch.utils.data.DataLoader(train_set, batch_size=200, num_workers=2,shuffle=False) 
+testloader = torch.utils.data.DataLoader(test_set, batch_size=200, num_workers=2, shuffle=False)
 
-
+print('Calculating frequencies..')
+freq = np.zeros(len(class_dict.keys()))
+for sample in train_set:
+    freq[sample[1]]+=1
+plt.bar(np.arange(0,15,1), freq)
+plt.xticks(np.arange(0,15,1), class_dict.keys())
+plt.show()
+weights = len(train_set)/freq/len(class_dict.keys())
+class_weights = torch.FloatTensor(weights)
 
 class ConvNet(nn.Module):
     def __init__(self):
         super(ConvNet, self).__init__()
         self.layer1 = nn.Sequential(
-            nn.Conv2d(3, 16, kernel_size=5, stride=1, padding=2),
+            nn.Conv2d(1, 16, kernel_size=5, stride=1, padding=2),
             nn.ReLU(),
             nn.MaxPool2d(kernel_size=4, stride=4)) # 2x2 --> 1 2h->1h and 2w->1w : 28x28 --> 14x14
             
@@ -82,7 +118,7 @@ class ConvNet(nn.Module):
             nn.ReLU(),
             nn.MaxPool2d(kernel_size=4, stride=4)) #2x2 --> 1 2h->1h and 2w->1w : 14x14 --> 7x7
         self.drop_out = nn.Dropout()
-        self.fc1 = nn.Linear(14 * 14 * 32, 2)
+        self.fc1 = nn.Linear(14 * 14 * 32, 15)
         #self.fc2 = nn.Linear(1000, 10)
     def forward(self, x):
         layer1 = self.layer1(x)
@@ -92,14 +128,15 @@ class ConvNet(nn.Module):
         return torch.nn.Softmax(1)(self.fc1(self.drop_out(layer2_vec)))
 
 model = torchvision.models.resnet18(pretrained=True)
+model.conv1 = nn.Conv2d(1, 64, kernel_size=7, stride=2, padding=3, bias=False)
 # model.connection1 = torch.nn.Linear(512, 220)
 
-model.fc = torch.nn.Linear(512, 2) # fc stands for fully connected layer 512 input 2 the output
+model.fc = torch.nn.Linear(512, 15) # fc stands for fully connected layer 512 input 2 the output
 model = torch.nn.Sequential(model, torch.nn.Softmax(1)) # We do a sequential pipeline
 #test_model = torch.nn.Sequential(torch.nn.Conv2d(1, 20, 5), )
 cov_model = ConvNet()
-model = cov_model
-criterion = torch.nn.CrossEntropyLoss()
+#model = cov_model
+criterion = torch.nn.CrossEntropyLoss(weight=class_weights)
 #optimizer = torch.optim.Adam(model.parameters(), lr=0.001, weight_decay=0.0005)
 optimizer = torch.optim.Adam(model.parameters(), lr=0.001, weight_decay=0.0005)
 # scheduler is used to adjust the learning rate,
@@ -112,7 +149,7 @@ for epoch in range(epochs):
     print(epoch)
     training_acc = 0
     training_samples = 0
-    for link, batch_images, batch_labels in trainloader:
+    for batch_images, batch_labels in tqdm(trainloader):
         optimizer.zero_grad() # we set the gradients to zero
         outputs = model(batch_images) # feed forward
         _, pred = torch.max(outputs.data, 1) # max returns the maximum value and the argmax, 1 is the axis
@@ -124,7 +161,7 @@ for epoch in range(epochs):
     print('Training acc:', training_acc/training_samples)
     correct = 0
     total = 0
-    for link, batch_images, batch_labels in testloader:
+    for batch_images, batch_labels in testloader:
         outputs = model(batch_images)
         _, pred = torch.max(outputs.data, 1)
         correct += (pred == batch_labels).sum().item()

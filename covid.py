@@ -43,56 +43,10 @@ def splitData(images,labels,train_percentage=0.6):
     print('are they equal?', (len(train) + len(validation) + len(test)==dataset_size))
     return train,train_l,validation,validation_l,test,test_l
 
-
-
-
-
 try:
     covid = pickle.load(open('pre-processed-dataset/covid-pre-processed.pickle', 'rb'))
     x_ray = pickle.load(open('pre-processed-dataset/x_ray-pre-processed.pickle', 'rb'))
 
-    # covid_data = covid.data
-    # covid_labels=covid.labels.values
-    #
-    # plt.hist(covid_labels)
-    # plt.title('All data')
-    #
-    # train,train_l,val,val_l,test,test_l = splitData(covid_data,covid_labels)
-    #
-    # plt.hist(train_l)
-    # plt.title('training data')
-    #
-    # plt.hist(val_l)
-    # plt.title('validation data')
-    #
-    # plt.hist(test_l)
-    # plt.title('test data')
-    # plt.show()
-
-    # x_raydata = x_ray.data
-    # x_ray_labels = x_ray.labels
-    #
-    # letter_counts = Counter(x_ray_labels)
-    # df = pd.DataFrame.from_dict(letter_counts, orient='index')
-    # df.plot(kind='bar')
-    # plt.show()
-    #
-    # train,train_l,val,val_l,test,test_l = splitData(x_raydata,x_ray_labels)
-    #
-    # letter_counts = Counter(train_l)
-    # df = pd.DataFrame.from_dict(letter_counts, orient='index')
-    # df.plot(kind='bar')
-    # plt.show()
-    #
-    # letter_counts = Counter(val_l)
-    # df = pd.DataFrame.from_dict(letter_counts, orient='index')
-    # df.plot(kind='bar')
-    # plt.show()
-    #
-    # letter_counts = Counter(test_l)
-    # df = pd.DataFrame.from_dict(letter_counts, orient='index')
-    # df.plot(kind='bar')
-    # plt.show()
 
     print("Found data")
 
@@ -114,26 +68,19 @@ except IOError :
     storedPickle = myData(covid,xray_labels)
     pickle.dump(storedPickle, open('pre-processed-dataset/covid-pre-processed.pickle', 'wb'))
     print('Saved covid pickles')
+    covid_data = storedPickle.data
+    covid_labels= storedPickle.labels
 
-    # Read X-Ray data set
-    x_ray_path = "x-ray-dataset"
-    image_x_ray_folder = os.path.join(x_ray_path, "images")
-    image_x_ray_list = os.listdir(image_x_ray_folder)
-    df_xray = pd.read_csv('x-ray-dataset/sample_labels.csv')
-    xray_labels = df_xray['Finding Labels'].values
-    images_PIL = [Image.open(os.path.join(image_x_ray_folder, image_name)) for image_name in image_x_ray_list]
-    x_ray = pp.preprocess(images_PIL, gray_scale = True, denoise = True, clahe = True, xray = True)
-    xray_data = myData(x_ray,xray_labels)
-    for i in range(xray_labels.shape[0]):
-        xray_labels[i] = xray_labels[i].split('|')[0]
-    pickle.dump(xray_data , open('pre-processed-dataset/x_ray-pre-processed.pickle', 'wb'))
-    print('Saved x-rays pickles')
-
+    train,train_l,val,val_l,test,test_l = splitData(covid_data,covid_labels)
+    storedPickle_train = myData(train,train_l)
+    storedPickle_val = myData(val,val_l)
+    storedPickle_test = myData(test,test_l)
+    pickle.dump(storedPickle_train, open('pre-processed-dataset/covid-pre-processed-train.pickle', 'wb'))
+    pickle.dump(storedPickle_val, open('pre-processed-dataset/covid-pre-processed-val.pickle', 'wb'))
+    pickle.dump(storedPickle_test, open('pre-processed-dataset/covid-pre-processed-test.pickle', 'wb'))
+    print('Saved covid pickles')
 
 print('Cleaned Data')
-#plt.imshow(x_ray[32],cmap='gray')
-#plt.show()
-
 
 def read_txt(type='train'):
     if type=='train':
