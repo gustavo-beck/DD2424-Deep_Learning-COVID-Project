@@ -11,6 +11,10 @@ import random
 from torch import nn
 import pickle
 from tqdm import tqdm
+import glob
+from natsort import natsorted # This library sorts a list in a "natural" way
+
+
 
 class myData:
     def __init__(self,data,labels):
@@ -22,6 +26,8 @@ img_name = []
 label = []
 labels = ['train', 'val', 'test']
 directories = {}
+# directories['test'] = glob.glob(os.path.join(path, '*test.pickle')) # with recursive = True can search on subdirectories within the same directory
+
 for label in labels:
     directories[label] = []
 for root, _, files in os.walk(path):
@@ -72,6 +78,7 @@ class CustomDatasetFromImages(torch.utils.data.Dataset):
     def load_pickle_file(self, file_num, shuffle=False):
         pickle_file = open(self.pickle_dir_array[file_num], 'rb')
         self.current_pickle = pickle.load(pickle_file)
+        pickle_file.close() #Option: change to with open(...)
         self.current_pickle_id = file_num
 
     def index_to_pic_pos(self, index):
@@ -85,8 +92,7 @@ class CustomDatasetFromImages(torch.utils.data.Dataset):
         if self.transforms is not None:
             img_array = self.transforms(img_array)
         image_label = self.current_pickle.labels[pos]
-        single_img_name = 2
-        return (single_img_name, img_array, self.labels_dict[image_label])
+        return (img_array, self.labels_dict[image_label])
     def __len__(self):
         return self.data_len
 
@@ -95,7 +101,7 @@ train_set = CustomDatasetFromImages(directories['train'], class_dict, transforms
 val_set = CustomDatasetFromImages(directories['val'], class_dict, transforms=our_transforms)
 test_set = CustomDatasetFromImages(directories['test'], class_dict, transforms=our_transforms)
 # The loader is used to slpit the input and validation to batches, it returns arrays with the input in batches
-trainloader = torch.utils.data.DataLoader(train_set, batch_size=250, num_workers=0, shuffle=False)
+trainloader = torch.utils.data.DataLoader(train_set, batch_size=100, num_workers=0, shuffle=False)
 testloader = torch.utils.data.DataLoader(test_set, batch_size=100, num_workers=0, shuffle=False)
 
 print('Calculating frequencies..')
@@ -136,11 +142,11 @@ class ConvNet(nn.Module):
 
 model = torchvision.models.resnet18(pretrained=True)
 model.conv1 = nn.Conv2d(1, 64, kernel_size=7, stride=2, padding=3, bias=False) # If we do not modify this layer the resnet will expect a three layer network
+# TODO find the proper way to change the number of channels of input in RESNET. Might be an issue to change the conv1 this way
 # model.connection1 = torch.nn.Linear(512, 220)
 
 model.fc = torch.nn.Linear(512, 15) # fc stands for fully connected layer 512 input 2 the output
-model = torch.nn.Sequential(model, torch.nn.Softmax(1)) # We do a sequential pipeline
-print(device)
+# model = torch.nn.Sequential(model, torch.nn.Softmax(1)) # We do a sequential pipeline --> wrong, crossentorpyloss already applies softmax
 model.to(device)
 #test_model = torch.nn.Sequential(torch.nn.Conv2d(1, 20, 5), )
 # cov_model = ConvNet()
@@ -159,11 +165,14 @@ for epoch in range(epochs):
     print(epoch)
     training_acc = 0
     training_samples = 0
+    model.train()
     for link, batch_images, batch_labels in tqdm(trainloader):
         batch_images, batch_labels = batch_images.to(device), batch_labels.to(device)
         optimizer.zero_grad() # we set the gradients to zero
         outputs = model(batch_images) # feed forward
-        _, pred = torch.max(outputs.data, 1) # max returns the maximum value and the argmax, 1 is the axis
+        # probability = torch.nn.functional.softmax(outputs, dim=1)
+        _, pred = torch.max(outputs, 1) # max returns the maximum value and the argmax, 1 is the axis
+
         training_acc += (pred == batch_labels).sum().item() # we sum all the the correctly classified samples, item() coverts the 1d tensor to a number
         training_samples  += batch_labels.size(0) # counting the samples
         loss = criterion(outputs, batch_labels.long().to(device)) # claculating loss
@@ -172,13 +181,14 @@ for epoch in range(epochs):
     print('Training acc:', training_acc/training_samples)
     correct = 0
     total = 0
-    torch.cuda.empty_cache()
-    for link, batch_images, batch_labels in testloader:
-        batch_images, batch_labels = batch_images.to(device), batch_labels.to(device)
-        outputs = model(batch_images)
-        _, pred = torch.max(outputs.data, 1)
-        correct += (pred == batch_labels).sum().item()
-        total += batch_labels.size(0)
+    model.eval()
+    with torch.no_grad():
+        for link, batch_images, batch_labels in testloader:
+            batch_images, batch_labels = batch_images.to(device), batch_labels.to(device)
+            outputs = model(batch_images)
+            _, pred = torch.max(outputs.data, 1)
+            correct += (pred == batch_labels).sum().item()
+            total += batch_labels.size(0)
     correct = correct/total
     print('Test acc:', correct)
     scheduler.step(correct) # update learning rate
