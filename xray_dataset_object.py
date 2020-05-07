@@ -49,8 +49,9 @@ class XrayDataset(torch.utils.data.Dataset):
         return self.df.shape[0]
 
 # Construct Objects
-training_set = XrayDataset(PATH + "images/", data_train, training_transforms)
-validation_set = XrayDataset(PATH + "images/", data_val, val_test_transforms)
+train_set = XrayDataset(PATH + "images/", data_train, training_transforms)
+val_set = XrayDataset(PATH + "images/", data_val, val_test_transforms)
 test_set = XrayDataset(PATH + "images/", data_test, val_test_transforms)
+diseases_dict = dict(zip(data.columns[2:], range(len(data.columns[2:]))))
 
     
