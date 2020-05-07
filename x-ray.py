@@ -7,6 +7,7 @@ import os
 from PIL import Image
 import pickle
 from collections import Counter
+import cv2
 
 
 class myData:
@@ -21,7 +22,14 @@ def read_images_names(path, path_labels):
     file_labels = open(path_labels,'r')
     data_labels = file_labels.read()
     images_labels = data_labels.split("\n")
+    final_image_names = []
+    final_image_labels = []
+    for i in range(len(images_labels)):
+        if images_labels[i] != 'No Finding':
+            final_image_labels.append(images_labels[i])
+            final_image_names.append(images_names[i])
     return images_names, len(images_names), images_labels
+
 
 def preprocess_datasets(set_size, batch_size, set_images, set_labels, x_ray_path, dataset_name):
     # Define sizes
@@ -35,17 +43,27 @@ def preprocess_datasets(set_size, batch_size, set_images, set_labels, x_ray_path
         image_x_ray_list = set_images[start:end]
         xray_labels = set_labels[start:end]
         images_PIL = [Image.open(os.path.join(x_ray_path, image_name)) for image_name in image_x_ray_list]
-        x_ray = pp.preprocess(images_PIL, gray_scale = True, denoise = True, clahe = True, xray = True)
-        xray_data = myData(x_ray,xray_labels)
-        pickle.dump(xray_data , open('pre-processed-dataset/x_ray-pre-processed' + str(i) + '-' + dataset_name + '.pickle', 'wb'))
+        x_ray = pp.preprocess(images_PIL, gray_scale=True, denoise=True, clahe=True, xray=True)
+        for image in range(len(x_ray)):
+            filename = set_images[i*batch_size + image]
+            cv2.imwrite(os.path.join(dataset_name, filename), x_ray[image])
+        # xray_data = myData(x_ray, xray_labels)
+        # pickle.dump(xray_data, open('pre-processed-dataset/x_ray-pre-processed' + str(i) + '-' + dataset_name + '.pickle', 'wb'))
         print('Saved x-rays pickles', i)
     start = left_set
     image_x_ray_list = set_images[-start:]
     xray_labels = set_labels[-start:]
     images_PIL = [Image.open(os.path.join(x_ray_path, image_name)) for image_name in image_x_ray_list]
-    x_ray = pp.preprocess(images_PIL, gray_scale = True, denoise = True, clahe = True, xray = True)
-    xray_data = myData(x_ray,xray_labels)
-    pickle.dump(xray_data , open('pre-processed-dataset/x_ray-pre-processed-' + dataset_name + '.pickle', 'wb'))
+    x_ray = pp.preprocess(images_PIL, gray_scale=True, denoise=True, clahe=True, xray=True)
+    # xray_data = myData(x_ray, xray_labels)
+    for image in range(len(x_ray)):
+        filename = set_images[start + image]
+        cv2.imwrite(os.path.join(dataset_name, filename), x_ray[image])
+    # pickle.dump(xray_data , open('pre-processed-dataset/x_ray-pre-processed-' + dataset_name + '.pickle', 'wb'))
+    f = open(dataset_name+'_labels_processed.txt', 'w')
+    for ele in set_labels:
+        f.write(ele + '\n')
+    f.close()
     print('Saved x-rays pickles', i)
 
 def splitData(images,labels,train_percentage=0.6):
@@ -56,9 +74,9 @@ def splitData(images,labels,train_percentage=0.6):
     validation_size = int(dataset_size*validation_percentage)
     test_size = dataset_size-training_size-validation_size
     total_indeces = np.arange(len(images))
-    indeces_tr = np.random.choice(total_indeces,training_size,replace=False)
+    indeces_tr = np.random.choice(total_indeces, training_size, replace=False)
     remaining_indeces = list(set(total_indeces) - set(indeces_tr))
-    indeces_val = np.random.choice(remaining_indeces,validation_size,replace=False)
+    indeces_val = np.random.choice(remaining_indeces, validation_size, replace=False)
     indeces_test = list(set(remaining_indeces)-set(indeces_val))
 
 
@@ -84,7 +102,7 @@ except IOError :
     print("Couldn't find data sets")
     batch_size = 5000 
     # Read X-Ray data set
-    x_ray_path = "all_100k_images/images"
+    x_ray_path = "image_100k"
     train_images, train_size, train_labels = read_images_names('train.txt', 'train_labels.txt')
     test_images, test_size, test_labels = read_images_names('test.txt', 'test_labels.txt')
     val_images, val_size, val_labels = read_images_names('val.txt', 'val_labels.txt')
