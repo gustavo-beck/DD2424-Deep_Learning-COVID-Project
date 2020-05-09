@@ -18,7 +18,7 @@ class XrayHeatmap():
         if architecture == 'Dense121':
             model= torch.load(model_path)
             model.to(device)
-            self.model = model.module.densenet121.features
+            self.model = model.features
         self.model.eval() # Doesn't store gradients
 
         # Load penultimate weight's layer
@@ -28,16 +28,16 @@ class XrayHeatmap():
         # Prepare image
         mean = [0.485, 0.456, 0.406]
         std = [0.229, 0.224, 0.225]
-        image_transform = transforms.Compose([
+        self.image_transform = transforms.Compose([
             transforms.ToTensor(),
             transforms.Normalize(mean, std)
         ])
 
-        self.transform = transforms.Compose(image_transform)
-
-    def generateMap(self, pathImageFile, pathOutputFile):
+    def generateMap(self, pathImageFile, pathOutputFile, device):
         imageData = Image.open(pathImageFile).convert('RGB')
-        imageData = self.transform(imageData)
+        imageData = self.image_transform(imageData)
+        imageData = imageData.unsqueeze_(0)
+        imageData = imageData.to(device)
 
         # Walk the image through the model
         output = self.model(imageData)
@@ -50,25 +50,25 @@ class XrayHeatmap():
             else: heatmap += self.weights[i] * map
 
         #---- Blend original and heatmap 
-        npHeatmap = heatmap.data.numpy()
+        npHeatmap = heatmap.cpu().data.numpy()
 
-        imgOriginal = cv2.imread(pathImageFile, 1).convert('RGB')
+        imgOriginal = cv2.imread(pathImageFile, 1)
         height, width, channels = imgOriginal.shape
         cam = npHeatmap / np.max(npHeatmap)
-        cam = cv2.resize(cam, (height,width))
+        cam = cv2.resize(cam, (height, width))
         heatmap = cv2.applyColorMap(np.uint8(255*cam), cv2.COLORMAP_JET)
               
         img = heatmap * 0.5 + imgOriginal
             
         cv2.imwrite(pathOutputFile, img)
 
-pathInputImage = 'CHANGETHISSHIT/00009285_000.png'
-pathOutputImage = 'CHANGETHISSHIT/heatmap.png'
-pathModel = 'CHANGETHISSHIT'
+pathInputImage = 'images_small/00000459_034.png'
+pathOutputImage = 'heatmap_images/heatmap.png'
+pathModel = 'final_model.pt'
 
-architecture = 'DENSE-NET-121'
+architecture = 'Dense121'
 
 transCrop = 224
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 h = XrayHeatmap(pathModel, architecture, device)
-h.generate(pathInputImage, pathOutputImage)
+h.generateMap(pathInputImage, pathOutputImage, device)

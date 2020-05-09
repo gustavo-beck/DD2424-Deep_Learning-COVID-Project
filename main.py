@@ -8,7 +8,7 @@ from xray_dataset_object import *
 from natsort import natsorted  # This library sorts a list in a "natural" way
 
 
-def cure_covid(path, image_size, net_num, number_labels,  WEIGHTS=False, PRETRAINED=False):
+def cure_covid(path, image_size, net_num, number_labels,  WEIGHTS=False, PRETRAINED=False, num_epochs=50):
     # TODO READ THE IMAGES_DF TO CREATE THE DICTIONARY WITH TRAIN, VAL AND TEST
 
     # labels = ['train', 'val', 'test']
@@ -84,16 +84,18 @@ def cure_covid(path, image_size, net_num, number_labels,  WEIGHTS=False, PRETRAI
     # scheduler is used to adjust the learning rate,
     # this oparticular scheduler uses the validation accuracy to adjust the learning rate,
     # other schedulers dont require the validation accuracy
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.1, patience=10, eps=1e-06)
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.1, patience=1, eps=1e-06)
     model = train_memeNet(model, trainloader, valloader, testloader, optimizer, scheduler, criterion, device, train_set,
-                          val_set, test_set, number_labels, epochs=50)
+                          val_set, test_set, number_labels, epochs=num_epochs)
+
+
 
 
 def main():
     path = ''
     image_size = 224
     network = 18 # 18, 34, 50, 101 or 152 depending on the desired resnet
-    cure_covid(path, image_size, network, number_labels=14, PRETRAINED=True)
+    cure_covid(path, image_size, network, number_labels=14, PRETRAINED=True, num_epochs=3)
 
 
 if __name__ == "__main__":

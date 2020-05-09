@@ -2,7 +2,7 @@
 from tqdm import tqdm
 from memeNet import *
 import numpy as np
-from sklearn.metrics import classification_report, multilabel_confusion_matrix, roc_auc_score, roc_curve, auc
+from sklearn.metrics import classification_report, roc_curve, auc
 import matplotlib.pyplot as plt
 
 
@@ -40,6 +40,7 @@ def evaluate_model(model, data_loader, data_set, criterion, device, num_labels, 
 def train_memeNet(model, trainloader, valloader, testloader, optimizer, scheduler, criterion, device, train_set,
                   val_set, test_set, num_labels, epochs=50):
     labels_names = list(train_set.df.columns)[2:]
+    min_loss = np.Inf
     for epoch in range(epochs):
         print(epoch)
         training_samples = 0
@@ -87,6 +88,7 @@ def train_memeNet(model, trainloader, valloader, testloader, optimizer, schedule
             plt.legend(loc="lower right")
             title = 'Label_'+str(labels_names[i])+'_epoch_'+str(epoch)
             plt.savefig(title)
+            plt.close('all')
 
 
         # print(classification_report(labels_matrix.astype(int), np.round(predictions_matrix).astype(int), target_names=labels_names))
@@ -100,11 +102,18 @@ def train_memeNet(model, trainloader, valloader, testloader, optimizer, schedule
         print('Validation acc total:', val_acc)
         print('Validation acc per label:', val_acc_labels)
         scheduler.step(val_loss)  # update learning rate
+        if val_loss < min_loss:
+            min_loss = val_loss
+            final_model = model
+            string = 'final_model_'+ str(epoch+1)+'.pt'
+
+
 
     print('Computing test accuracy...')
     test_acc, test_acc_labels, test_loss = evaluate_model(model, testloader, test_set, criterion, device, num_labels, labels_names)
     print('Test acc total:', test_acc)
     print('Test acc per label:', test_acc_labels)
-    return model
+    torch.save(final_model, string)
+    return final_model
 
 
