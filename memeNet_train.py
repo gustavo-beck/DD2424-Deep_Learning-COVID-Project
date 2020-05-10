@@ -106,6 +106,7 @@ def train_memeNet(model, trainloader, valloader, testloader, optimizer, schedule
             min_loss = val_loss
             final_model = model
             string = 'final_model_'+ str(epoch+1)+'.pt'
+            torch.save(final_model, string)
 
 
 

@@ -95,7 +95,7 @@ def main():
     path = ''
     image_size = 224
     network = 18 # 18, 34, 50, 101 or 152 depending on the desired resnet
-    cure_covid(path, image_size, network, number_labels=14, PRETRAINED=True, num_epochs=3)
+    cure_covid(path, image_size, network, number_labels=14, PRETRAINED=True, num_epochs=100)
 
 
 if __name__ == "__main__":
