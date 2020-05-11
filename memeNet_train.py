@@ -11,7 +11,7 @@ def pred_acc(original, predicted):
     return torch.round(predicted.cpu()).eq(original.cpu()).sum().numpy(), torch.round(predicted.cpu()).eq(original.cpu()).sum(dim=0).numpy()
 
 
-def evaluate_model(model, data_loader, data_set, criterion, device, num_labels, labels_names):
+def evaluate_model(model, data_loader, data_set, criterion, device, num_labels, labels_names,epoch,isTest=False):
     acc_total = 0
     acc_labels = np.zeros((num_labels))
     loss = 0
@@ -34,6 +34,33 @@ def evaluate_model(model, data_loader, data_set, criterion, device, num_labels, 
     print(classification_report(labels_matrix.astype(int), np.round(predictions_matrix).astype(int), target_names=labels_names))
     correct_total = acc_total / num_labels / len(data_set)
     correct_labels = acc_labels / len(data_set)
+    
+    fpr = dict()
+    tpr = dict()
+    roc_auc = dict()
+    for i in range(num_labels):
+        fpr[i], tpr[i], _ = roc_curve(labels_matrix[:, i], predictions_matrix[:, i])
+        roc_auc[i] = auc(fpr[i], tpr[i])
+
+    # Plot of a ROC curve for a specific class
+    for i in range(num_labels):
+        plt.figure()
+        plt.plot(fpr[i], tpr[i], label='ROC curve (area = %0.2f)' % roc_auc[i])
+        plt.plot([0, 1], [0, 1], 'k--')
+        plt.xlim([0.0, 1.0])
+        plt.ylim([0.0, 1.05])
+        plt.xlabel('False Positive Rate')
+        plt.ylabel('True Positive Rate')
+        plt.title('Receiver operating characteristic example')
+        plt.legend(loc="lower right")
+        if isTest==False:
+            title = 'Validation_Roc/Label_'+str(labels_names[i])+'_epoch_'+str(epoch)
+        else:
+            title = 'Test_Roc/Label_'+str(labels_names[i])+'_epoch_'+str(epoch)
+        plt.savefig(title)
+        plt.close('all')
+
+    
     return correct_total, correct_labels, loss / len(data_set)
 
 
@@ -41,8 +68,16 @@ def train_memeNet(model, trainloader, valloader, testloader, optimizer, schedule
                   val_set, test_set, num_labels, epochs=50):
     labels_names = list(train_set.df.columns)[2:]
     min_loss = np.Inf
+    txt_train = open('train_loss.txt','w')
+    txt_train.write('Train Loss')
+    txt_train.close()
+    txt_train = open('val_loss.txt','w')
+    txt_train.write('Validation Loss')
+    txt_train.close()
+    
     for epoch in range(epochs):
         print(epoch)
+        train_loss=0
         training_samples = 0
         training_acc_total = 0
         training_acc_labels = np.zeros((num_labels))
@@ -64,10 +99,11 @@ def train_memeNet(model, trainloader, valloader, testloader, optimizer, schedule
             aux2 = batch_labels.cpu().detach().numpy()
             predictions_matrix = np.concatenate((predictions_matrix, outputs.cpu().detach().numpy()), axis=0)
             labels_matrix = np.concatenate((labels_matrix, batch_labels.cpu().detach().numpy()), axis=0)
+            train_loss+= loss.item() * len(batch_labels)
 
         predictions_matrix = predictions_matrix[1:]
         labels_matrix = labels_matrix[1:]
-
+        train_loss =  train_loss/len(train_set)
         fpr = dict()
         tpr = dict()
         roc_auc = dict()
@@ -86,7 +122,7 @@ def train_memeNet(model, trainloader, valloader, testloader, optimizer, schedule
             plt.ylabel('True Positive Rate')
             plt.title('Receiver operating characteristic example')
             plt.legend(loc="lower right")
-            title = 'Label_'+str(labels_names[i])+'_epoch_'+str(epoch)
+            title = 'Training_Roc/Label_'+str(labels_names[i])+'_epoch_'+str(epoch)
             plt.savefig(title)
             plt.close('all')
 
@@ -98,11 +134,22 @@ def train_memeNet(model, trainloader, valloader, testloader, optimizer, schedule
 
         # Compute Validation acc
         print('Computing validation accuracy...')
-        val_acc, val_acc_labels, val_loss = evaluate_model(model, valloader, val_set, criterion, device, num_labels, labels_names)
+        val_acc, val_acc_labels, val_loss = evaluate_model(model, valloader, val_set, criterion, device, num_labels, labels_names,epoch)
         print('Validation acc total:', val_acc)
         print('Validation acc per label:', val_acc_labels)
         scheduler.step(val_loss)  # update learning rate
+        txt = open('val_loss.txt','a')
+        txt.write('\n')
+        txt.write(str(val_loss))
+        txt.close()
+        
+        txt = open('train_loss.txt','a')
+        txt.write('\n')
+        txt.write(str(train_loss))
+        txt.close()
+        
         if val_loss < min_loss:
+            
             min_loss = val_loss
             final_model = model
             string = 'final_model_'+ str(epoch+1)+'.pt'
@@ -111,7 +158,7 @@ def train_memeNet(model, trainloader, valloader, testloader, optimizer, schedule
 
 
     print('Computing test accuracy...')
-    test_acc, test_acc_labels, test_loss = evaluate_model(model, testloader, test_set, criterion, device, num_labels, labels_names)
+    test_acc, test_acc_labels, test_loss = evaluate_model(model, testloader, test_set, criterion, device, num_labels, labels_names, epochs, isTest=True)
     print('Test acc total:', test_acc)
     print('Test acc per label:', test_acc_labels)
     torch.save(final_model, string)
