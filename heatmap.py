@@ -60,11 +60,11 @@ class XrayHeatmap():
         cam = cv2.resize(cam, (height, width))
         heatmap = cv2.applyColorMap(np.uint8(255*cam), cv2.COLORMAP_JET)
               
-        img = heatmap * 0.7 + imgOriginal
+        img = heatmap * 0.5 + imgOriginal
             
         cv2.imwrite(pathOutputFile, img)
 
-df = pd.read_csv("organized_dataset.csv")
+df = pd.read_csv("xray_dataset/organized_dataset.csv")
 df.pop('No Finding')  # Deleting the column no findings
 cols = np.array(df.columns)
 image = ['00000001_000.png',
@@ -81,7 +81,7 @@ image = ['00000001_000.png',
         '00000022_001.png',
         '00000032_024.png',
         '00030759_000.png']
-pathModel = 'final_model_39.pt'
+pathModel = 'final_model_2.pt'
 architecture = 'Dense121'
 transCrop = 224
 for i in range(len(image)):
