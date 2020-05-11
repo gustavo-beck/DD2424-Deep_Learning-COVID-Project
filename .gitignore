@@ -17,4 +17,5 @@
 /all_100k_images
 /pytorch_example/balanced_data.pickle
 /images_small
+/heatmap_images
 
