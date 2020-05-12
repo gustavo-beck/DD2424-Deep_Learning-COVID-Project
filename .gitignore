@@ -18,4 +18,5 @@
 /pytorch_example/balanced_data.pickle
 /images_small
 /heatmap_images
-
+/covid_dataset
+/data_som.pickle
