@@ -1,11 +1,9 @@
-import glob
-from dataLoading import *
 from memeNet_train import *
 from memeNet import *
 import pandas as pd
 from torchvision import models
 from xray_dataset_object import *
-from natsort import natsorted  # This library sorts a list in a "natural" way
+
 
 
 def cure_covid(path, image_size, net_num, number_labels,  WEIGHTS=False, PRETRAINED=False, num_epochs=50):
@@ -30,9 +28,9 @@ def cure_covid(path, image_size, net_num, number_labels,  WEIGHTS=False, PRETRAI
     val_set = validation_set
 
     # Create data loaders
-    trainloader = torch.utils.data.DataLoader(train_set, batch_size=40, num_workers=0, shuffle=False)
-    valloader = torch.utils.data.DataLoader(val_set, batch_size=40, num_workers=0, shuffle=False)
-    testloader = torch.utils.data.DataLoader(test_set, batch_size=40, num_workers=0, shuffle=False)
+    trainloader = torch.utils.data.DataLoader(train_set, batch_size=16, num_workers=24, shuffle=False)
+    valloader = torch.utils.data.DataLoader(val_set, batch_size=16, num_workers=24, shuffle=False)
+    testloader = torch.utils.data.DataLoader(test_set, batch_size=16, num_workers=24, shuffle=False)
 
     # Create device to perform computations in GPU (if available)
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
