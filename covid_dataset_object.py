@@ -49,7 +49,7 @@ class XrayDataset(torch.utils.data.Dataset):
         img_array = Image.open(full_path).convert('RGB')
         if self.transforms is not None:
             img_array = self.transforms(img_array)
-        aux = np.array(row.iloc[2:].values.tolist(), dtype=float)
+        aux = np.array(row.iloc[1:].values.tolist(), dtype=float)
         return img_array, aux
 
     def __len__(self):
