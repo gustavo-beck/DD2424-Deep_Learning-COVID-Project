@@ -115,7 +115,7 @@ data_flattened = data_flattened.reshape(-1, data_flattened.shape[2])
 all_diseases_labels = set(image_labels)
 image_list = []
 image_labels = []
-sample_num = 20
+sample_num = 10
 counter = np.zeros(len(all_diseases_labels))
 dictionary = {'Atelectasis':0, 'Cardiomegaly':1, 'Consolidation':2, 'Edema':3, 'Effusion':4, 'Emphysema':5, 'Fibrosis':6, 'Hernia':7, 'Infiltration':8, 'Mass':9, 'COVID-19':10, 'Nodule':11, 'Pleural_Thickening':12, 'Pneumonia':13, 'Pneumothorax':14}
 for i in range(len(data_flattened)):
@@ -142,7 +142,7 @@ for i in range(len(data_labels)):
     color.append(color_range[dictionary[data_labels[i]]])
 # Set-up manifold methods
 methods = OrderedDict()
-# LLE = partial(manifold.LocallyLinearEmbedding,
+#LLE = partial(manifold.LocallyLinearEmbedding,
               #n_neighbors, n_components, eigen_solver='auto')
 #methods['LLE'] = LLE(method='standard')
 #methods['LTSA'] = LLE(method='ltsa')
@@ -153,26 +153,41 @@ methods = OrderedDict()
 #methods['SE'] = manifold.SpectralEmbedding(n_components=n_components,
                                            #n_neighbors=n_neighbors)
 methods['t-SNE'] = manifold.TSNE(n_components=n_components,
-                                perplexity=10.0,
-                                early_exaggeration=12.0,
-                                learning_rate=5.0, 
-                                n_iter=10000,
-                                n_iter_without_progress=300,
+                                perplexity=25,
+                                learning_rate= 777.0,
+                                n_iter=1000000,
+                                n_iter_without_progress = 1000,
                                 min_grad_norm=1e-07,
                                 metric='euclidean',
                                 init='pca',
                                 verbose=0,
-                                random_state=None,
-                                method='barnes_hut',
+                                random_state=42,
+                                method='exact',
                                 angle=0.5,
                                 n_jobs=-1)
 
 # Plot results
+color_labels = np.zeros(len(all_diseases_labels))
+marker = itertools.cycle((',', '+', '.', 'o', '*'))
+disease_marker = []
+for i in range(n):
+    disease_marker.append(next(marker))
+
 for i, (label, method) in tqdm(enumerate(methods.items())):
     t0 = time()
     Y = method.fit_transform(data_flattened)
     t1 = time()
     print("%s: %.2g sec" % (label, t1 - t0))
-    plt.scatter(Y[:, 0], Y[:, 1], c=color, cmap=plt.cm.Spectral)
+    sample_num = 1
+    counter = np.zeros(len(all_diseases_labels))
+    for j in range(len(data_labels)):
+        disease_index = dictionary[data_labels[j]]
+        if counter[disease_index] == 0:
+            plt.scatter(Y[j, 0], Y[j, 1], c=color[j], marker = disease_marker[disease_index], cmap=plt.cm.Spectral, label = data_labels[j])
+            counter[disease_index] += 1
+        else:
+            plt.scatter(Y[j, 0], Y[j, 1], c=color[j], marker = disease_marker[disease_index], cmap=plt.cm.Spectral)
 
+plt.legend(markerscale=1, loc='center left', bbox_to_anchor=(1, 0.5), scatterpoints=1, fontsize=10)
+plt.tight_layout()
 plt.show()
