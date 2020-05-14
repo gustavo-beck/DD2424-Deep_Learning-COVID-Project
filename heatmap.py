@@ -81,7 +81,7 @@ image = ['00000001_000.png',
         '00000022_001.png',
         '00000032_024.png',
         '00030759_000.png']
-pathModel = 'final_model_2.pt'
+pathModel = 'final_model_16.pt'
 architecture = 'Dense121'
 transCrop = 224
 for i in range(len(image)):

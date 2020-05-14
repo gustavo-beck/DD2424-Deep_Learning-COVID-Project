@@ -3,6 +3,7 @@ import pickle
 import cv2
 from tqdm import tqdm
 from matplotlib import pyplot as plt
+import matplotlib.pylab as pylab
 from matplotlib.pyplot import cm
 from PIL import Image
 import torch
@@ -10,6 +11,7 @@ import torch.nn as nn
 import torchvision
 import torchvision.transforms as transforms
 import pandas as pd
+import itertools
 
 class myData:
     def __init__(self,data,labels):
@@ -97,7 +99,7 @@ try:
     data = pickle.load(open('data_som.pickle', 'rb'))
 except IOError:
     print("Couldn't find data")
-    model_path = 'final_model_2.pt'
+    model_path = 'final_model_16.pt'
 
     def generateMap(model, pathImageFile, device):
 
@@ -142,9 +144,9 @@ except IOError:
 
 print("start SOMS")
 # Train SOM
-grid_height = 20
-grid_width = 20
-epochs = 20
+grid_height = 15
+grid_width = 15
+epochs = 100
 batch_size = 1
 # Shuffling the data
 data_flattened = data.data # array
@@ -153,6 +155,7 @@ shuffling_index = np.random.permutation(data_flattened.shape[0])
 data_flattened = data_flattened[shuffling_index]
 data_flattened = data_flattened.reshape(-1, data_flattened.shape[2])
 data_labels = np.array(data_labels)[shuffling_index]
+
 som = SOM(data_flattened, grid_width, grid_height)
 som.train(data_flattened, epochs, batch_size)
 all_diseases_labels = set(image_labels)
@@ -174,14 +177,19 @@ n = len(all_diseases_labels)
 color= cm.rainbow(np.linspace(0,1,n))
 c=np.array(color)
 color_labels = np.zeros(len(all_diseases_labels))
+marker = itertools.cycle((',', '+', '.', 'o', '*'))
+disease_marker = []
+for i in range(n):
+    disease_marker.append(next(marker))
+
 fig, ax = plt.subplots()
 for i, j in np.ndindex(grid_width, grid_height):
     label = dictionary[ranking_winners[i,j]]
     if color_labels[ranking_winners[i,j]] == 0: 
-        plt.scatter(i,j, c=c[ranking_winners[i,j]], alpha=0.7, s=number_of_points[i,j]*1e4, edgecolors='none', label=label)
+        plt.scatter(i,j, c=c[ranking_winners[i,j]], marker = disease_marker[list(dictionary.values()).index(label)], alpha=0.7, s=number_of_points[i,j]*1e4, edgecolors='none', label=label)
         color_labels[ranking_winners[i,j]] += 1
     else:
-        plt.scatter(i,j, c=c[ranking_winners[i,j]], alpha=0.7, s=number_of_points[i,j]*1e4, edgecolors='none')
+        plt.scatter(i,j, c=c[ranking_winners[i,j]], marker = disease_marker[list(dictionary.values()).index(label)], alpha=0.7, s=number_of_points[i,j]*1e4, edgecolors='none')
 
 
 lgnd = plt.legend(markerscale=1, loc='center left', bbox_to_anchor=(1, 0.5), scatterpoints=1, fontsize=10)
@@ -191,6 +199,3 @@ for handle in lgnd.legendHandles:
 # show the figure
 fig.tight_layout()
 plt.show()
-
-
-
