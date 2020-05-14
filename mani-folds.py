@@ -111,17 +111,28 @@ print("start Mani-folds")
 # Shuffling the data
 data_flattened = data.data # array
 data_labels = data.labels # list
-shuffling_index = np.random.permutation(data_flattened.shape[0])
-data_flattened = data_flattened[shuffling_index]
 data_flattened = data_flattened.reshape(-1, data_flattened.shape[2])
-data_labels = np.array(data_labels)[shuffling_index]
 all_diseases_labels = set(image_labels)
+image_list = []
+image_labels = []
+sample_num = 20
+counter = np.zeros(len(all_diseases_labels))
+dictionary = {'Atelectasis':0, 'Cardiomegaly':1, 'Consolidation':2, 'Edema':3, 'Effusion':4, 'Emphysema':5, 'Fibrosis':6, 'Hernia':7, 'Infiltration':8, 'Mass':9, 'COVID-19':10, 'Nodule':11, 'Pleural_Thickening':12, 'Pneumonia':13, 'Pneumothorax':14}
+for i in range(len(data_flattened)):
+    disease_index = dictionary[data_labels[i]]
+    if counter[disease_index] < sample_num:
+        counter[disease_index] += 1
+        image_list.append(data_flattened[i])
+        image_labels.append(data_labels[i])
+
+
+data_flattened = np.array(image_list)
+data_labels = image_labels
 n_neighbors = 10
 n_components = 2
 
 # Plot the clusters
 print("START CLUSTERS PLOTS")
-dictionary = {'Atelectasis':0, 'Cardiomegaly':1, 'Consolidation':2, 'Edema':3, 'Effusion':4, 'Emphysema':5, 'Fibrosis':6, 'Hernia':7, 'Infiltration':8, 'Mass':9, 'COVID-19':10, 'Nodule':11, 'Pleural_Thickening':12, 'Pneumonia':13, 'Pneumothorax':14}
 n_points = len(data_flattened)
 n = len(all_diseases_labels)
 color_range = cm.rainbow(np.linspace(0,1,n))
@@ -142,10 +153,10 @@ methods = OrderedDict()
 #methods['SE'] = manifold.SpectralEmbedding(n_components=n_components,
                                            #n_neighbors=n_neighbors)
 methods['t-SNE'] = manifold.TSNE(n_components=n_components,
-                                perplexity=5.0,
+                                perplexity=10.0,
                                 early_exaggeration=12.0,
-                                learning_rate=20.0, 
-                                n_iter=5000,
+                                learning_rate=5.0, 
+                                n_iter=10000,
                                 n_iter_without_progress=300,
                                 min_grad_norm=1e-07,
                                 metric='euclidean',
