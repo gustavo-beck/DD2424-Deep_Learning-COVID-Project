@@ -7,3 +7,5 @@ insight about the affected area, the core locations of infection and how similar
 both in localisation as well as AUC, reaching a ROC curve performance of 0.88 on
 the COVID-19 X-ray Dataset. Our report also analyses the importance of Transfer
 Learning, Model Architecture and Data Pre-processing.
+
+Our  model  builds  upon  well  established  architectures  for  robustness  and  efficacy.   It  consists  of a core deep Convolutional Neural Network which is augmented with a fully connected layer forclassification. Mainly two types of architetures were explored: DenseNet121 and ResNet50. 
