@@ -18,7 +18,7 @@ Our Deep Neural Network approach produced noteworthy results, showcasing great p
 
 ### CAM examples
 
-<img src="figures/heatmap_00000001_000.png_Cardiomegaly.png" width = "150" > <img img src="figures/heatmap_00000011_006.png_Atelectasis.png" width="150"> <img src="figures/heatmap_00000022_001.png_Fibrosis.png" width="150">
+<img src="figures/heatmap_00000001_000.png_Cardiomegaly.png" width = "150" style="padding:10px"> <img img src="figures/heatmap_00000011_006.png_Atelectasis.png" width="150" style="padding:10px"> <img src="figures/heatmap_00000022_001.png_Fibrosis.png" width="150" style="padding:10px">
 
 
 ### Comparison Relative Results
