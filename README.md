@@ -44,4 +44,8 @@ Our Deep Neural Network approach produced noteworthy results, showcasing great p
 
 <img src="figures/Picture2.png" width = "250"> <img img src="figures/Picture1.png" width="250"> <img src="figures/Picture3.png" width="250">
 
+## Running the code
+
+To run the code the main.py should be executed. To select the database import the appropriate dataset object. Keep in mind that the path should be adjusted in the object file and for the chestXray14 dataset, the images should be downloaded! 
+
 
