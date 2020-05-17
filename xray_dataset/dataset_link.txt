@@ -1,0 +1,2 @@
+Here the dataset can be downloaded. https://www.kaggle.com/nih-chest-xrays/data
+the images folder should be contained in this folder
