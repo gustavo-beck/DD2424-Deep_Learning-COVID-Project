@@ -18,17 +18,8 @@ Our Deep Neural Network approach produced noteworthy results, showcasing great p
 
 ### CAM examples
 
-<div class="row">
-  <div class="column">
-    <img src="figures/heatmap_00000001_000.png_Cardiomegaly.png" width = "150" >
-  </div>
-  <div class="column">
-    <img img src="figures/heatmap_00000011_006.png_Atelectasis.png" width="150">
-  </div>
-  <div class="column">
-    <img src="figures/heatmap_00000022_001.png_Fibrosis.png" width="150">
-  </div>
-</div>
+<img src="figures/heatmap_00000001_000.png_Cardiomegaly.png" width = "150" > <img img src="figures/heatmap_00000011_006.png_Atelectasis.png" width="150"> <img src="figures/heatmap_00000022_001.png_Fibrosis.png" width="150">
+
 
 ### Comparison Relative Results
 
@@ -40,17 +31,8 @@ Our Deep Neural Network approach produced noteworthy results, showcasing great p
 
 ### CAM examples
 
-<div class="row">
-  <div class="column">
-    <img src="figures/heatmap_9fdd3c3032296fd04d2cad5d9070d4_jumbo.jpeg_.png" width = "150">
-  </div>
-  <div class="column">
-    <img img src="figures/heatmap_E63574A7-4188-4C8D-8D17-9D67A18A1AFA.jpeg_.png" width="150">
-  </div>
-  <div class="column">
-    <img src="figures/heatmap_auntminnie-d-2020_01_28_23_51_6665_2020_01_28_Vietnam_coronavirus.jpeg_.png" width="150">
-  </div>
-</div>
+<img src="figures/heatmap_9fdd3c3032296fd04d2cad5d9070d4_jumbo.jpeg_.png" width = "150"> <img img src="figures/heatmap_E63574A7-4188-4C8D-8D17-9D67A18A1AFA.jpeg_.png" width="150"> <img src="figures/heatmap_auntminnie-d-2020_01_28_23_51_6665_2020_01_28_Vietnam_coronavirus.jpeg_.png" width="150">
+
 
 ## 15 Classification problem (COVID + chestXray14)
 
@@ -58,17 +40,6 @@ Our Deep Neural Network approach produced noteworthy results, showcasing great p
 
 ## Data Visualization (SOMs and tSNE)
 
-
-<div class="row">
-  <div class="column">
-    <img src="figures/Picture2.png" width = "250">
-  </div>
-  <div class="column">
-    <img img src="figures/Picture1.png" width="250">
-  </div>
-  <div class="column">
-    <img src="figures/Picture3.png" width="250">
-  </div>
-</div>
+<img src="figures/Picture2.png" width = "250"> <img img src="figures/Picture1.png" width="250"> <img src="figures/Picture3.png" width="250">
 
 
